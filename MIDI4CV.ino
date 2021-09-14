@@ -45,6 +45,7 @@ byte actVoices;
 int pitchbend;
 const byte LDACpin = 12;
 byte noteShift = 24;
+int noteOverflow;
 
 MIDI_CREATE_DEFAULT_INSTANCE();
 
@@ -167,7 +168,10 @@ if(note < MAX_INT_V){
 void HandlePitchBend(byte channel, int bend){
 pitchbend = bend>>4;
 for (int p=0; p<actVoices; p++){
-  dac.analogWrite(p, cvIntRef[voiceSlot[p].pNote] + pitchbend);
+  noteOverflow = cvIntRef[voiceSlot[p].pNote] + pitchbend;
+    if (noteOverflow <= 4095){
+      dac.analogWrite(p, noteOverflow);
+    }
 }
 }
 
