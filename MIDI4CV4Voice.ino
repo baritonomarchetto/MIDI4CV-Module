@@ -17,7 +17,7 @@
  *    Voice stealing, poly mode: TO BE CODED. Actually an additional note is not played.
  *    
  *    
- *    by Barito, oct 2021
+ *    by Barito, nov 2021
  */
  
 #include <MIDI.h>
@@ -50,7 +50,7 @@ voiceSlot[MAXOUTS] = {
 
 const byte unisonPin = 4;
 boolean unisonState;
-int pitchbend;
+int pitchbend = 0;
 const byte LDACpin = 12;
 byte noteShift = 24;
 int noteOverflow;
@@ -113,7 +113,7 @@ if(note < MAX_INT_V){
     //do nothing
     break;
     case 1: //same pitch to all outputs (both in unison and poly mode)
-      dac.analogWrite(cvIntRef[note], cvIntRef[note], cvIntRef[note], cvIntRef[note]);
+      dac.analogWrite(cvIntRef[note] + pitchbend, cvIntRef[note] + pitchbend, cvIntRef[note] + pitchbend, cvIntRef[note] + pitchbend);
       digitalWrite(voiceSlot[0].gatePin, HIGH);//open gate
       voiceSlot[0].pNote = note;
       voiceSlot[1].pNote = note;
@@ -130,8 +130,8 @@ if(note < MAX_INT_V){
           if(retrigger){
             digitalWrite(voiceSlot[0].gatePin, LOW); //GATE 1 CLOSED
           }  
-          dac.analogWrite(2, cvIntRef[note]);//new pitch to latest two voices
-          dac.analogWrite(3, cvIntRef[note]);//new pitch to latest two voices
+          dac.analogWrite(2, cvIntRef[note] + pitchbend);//new pitch to latest two voices
+          dac.analogWrite(3, cvIntRef[note] + pitchbend);//new pitch to latest two voices
         }
         else{ //UNISON
           if(retrigger){
@@ -148,7 +148,7 @@ if(note < MAX_INT_V){
           if(retrigger){
             digitalWrite(voiceSlot[0].gatePin, LOW); //GATE 1 CLOSED
           }
-          dac.analogWrite(3, cvIntRef[note]);//third voice stolen from the second doubled voice
+          dac.analogWrite(3, cvIntRef[note] + pitchbend);//third voice stolen from the second doubled voice
         }
         else{ //UNISON
           if(retrigger){
@@ -165,7 +165,7 @@ if(note < MAX_INT_V){
           if(retrigger){
             digitalWrite(voiceSlot[0].gatePin, LOW); //GATE 1 CLOSED
           }
-          dac.analogWrite(1, cvIntRef[note]);//fourth voice stolen from the first doubled voice
+          dac.analogWrite(1, cvIntRef[note] + pitchbend);//fourth voice stolen from the first doubled voice
         }
         else{ //UNISON
           if(retrigger){
@@ -224,7 +224,7 @@ if(note < MAX_INT_V){
             /*if(retrigger){
               digitalWrite(voiceSlot[0].gatePin, LOW); //GATE 1 CLOSED
            }*/
-            dac.analogWrite(b, cvIntRef[voiceSlot[activeSlot].pNote]);//...and set the new V out          
+            dac.analogWrite(b, cvIntRef[voiceSlot[activeSlot].pNote] + pitchbend);//...and set the new V out          
           }
           else { //UNISON ENABLED
             if(retrigger){
@@ -242,17 +242,19 @@ if(note < MAX_INT_V){
  
 void HandlePitchBend(byte channel, int bend){
 pitchbend = bend>>4;
+//check for data overflow
 for (int p=0; p<MAXOUTS; p++){
   noteOverflow = cvIntRef[voiceSlot[p].pNote] + pitchbend;
-    if (noteOverflow <= 4095){
-      dac.analogWrite(p, noteOverflow);
-    }
+  if (noteOverflow <= 4095){
+    //set DAC values
+    dac.analogWrite(p, cvIntRef[voiceSlot[p].pNote] + pitchbend); 
+  }
 }
 }
 
 void handleControlChange(byte channel, byte controlNumber, byte value) {
 if(controlNumber == 1){ //MOD WHEEL
-  if(value < 90){ //my K1000 only sends the lower half values (range 0 - 127) on CC#1 (probably sends values to another CC# on upper half)
+  if(value < 90){
     retrigger = 0;
   }
   else {
@@ -276,9 +278,9 @@ for (int a = 0; a < MAXOUTS; a++){
 
 void UnisonDAC(){
 #if NOTE_PRIORITY == 0
-  dac.analogWrite(cvIntRef[highestNote],cvIntRef[highestNote],cvIntRef[highestNote],cvIntRef[highestNote]);
+  dac.analogWrite(cvIntRef[highestNote] + pitchbend,cvIntRef[highestNote] + pitchbend,cvIntRef[highestNote] + pitchbend,cvIntRef[highestNote] + pitchbend);
 #elif NOTE_PRIORITY == 1
-  dac.analogWrite(cvIntRef[lowestNote],cvIntRef[lowestNote],cvIntRef[lowestNote],cvIntRef[lowestNote]);
+  dac.analogWrite(cvIntRef[lowestNote] + pitchbend,cvIntRef[lowestNote] + pitchbend,cvIntRef[lowestNote] + pitchbend,cvIntRef[lowestNote] + pitchbend);
 #endif
 }
 
