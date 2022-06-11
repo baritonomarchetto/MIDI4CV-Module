@@ -17,7 +17,7 @@
  *    Voice stealing, poly mode: TO BE CODED. Actually an additional note is not played.
  *    
  *    
- *    by Barito, nov 2021
+ *    by Barito, june 2022
  */
  
 #include <MIDI.h>
@@ -90,6 +90,7 @@ MIDI.setHandleNoteOn(HandleNoteOn);
 MIDI.setHandleNoteOff(HandleNoteOff);
 MIDI.setHandlePitchBend(HandlePitchBend);
 MIDI.setHandleControlChange(handleControlChange);
+MIDI.setHandleStop(handleStop);
 retrigger = 1;
 MIDI.begin(MIDI_CHANNEL);
 //DAC initialization
@@ -102,6 +103,7 @@ dac.setVref(1,1,1,1); // set to use internal voltage reference (2.048V)
 dac.setGain(1, 1, 1, 1); // set the gain of internal voltage reference ( 0 = gain x1, 1 = gain x2 )
 //dac.setVref(0, 0, 0, 0); // set to use external voltage reference (Vdd)
 dac.analogWrite(0, 0, 0, 0);
+noteCount = 0;
 }
 
 void HandleNoteOn(byte channel, byte note, byte velocity) {
@@ -296,6 +298,15 @@ void UniRetrigger (byte note){
   }
 #endif
 }  
+
+void handleStop() {
+cRESET();
+}
+
+void cRESET(){
+noteCount = 0;
+digitalWrite(voiceSlot[0].gatePin, LOW); //GATE 1 closed
+}
 
 void loop(){
 MIDI.read();
